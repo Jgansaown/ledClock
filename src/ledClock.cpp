@@ -25,22 +25,51 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(20, PIN, NEO_GRB + NEO_KHZ800);
 // and minimize distance between Arduinois  and first pixel.  Avoid connecting
 // on a live circuit...if you must, connect GND first.
 
+uint32_t hours_digit0_color, hours_digit1_color;
+uint32_t minutes_digit0_color, minutes_digit1_color;
+uint32_t seconds_color;
+void setTimeColors();
+
+/*
+ * Led strip order
+ *   |_0__1__2__3__|x
+ * 4 | 4  5  14 15
+ * 3 | 3  6  13 16
+ * 2 | 2  7  12 17
+ * 1 | 1  8  11 18
+ * 0 | 0  9  10 19
+ * y
+ */
+const uint8_t width = 4;
+const uint8_t height = 5;
+uint32_t ledMatrixState[width][height];
+void init_matrix();
 void updateMatrix();
 void setLed(uint8_t x, uint8_t y, uint32_t c);
 void setAll(uint32_t);
+
 uint32_t Wheel(byte WheelPos);
 
 
+void setTimeColors(){
+    hours_digit0_color = strip.Color(255, 0, 0);
+    hours_digit1_color = strip.Color(0, 255, 0);
+
+    minutes_digit0_color = strip.Color(0, 0, 255);
+    minutes_digit1_color = strip.Color(255, 0, 0);
+
+    seconds_color = strip.Color(255, 255, 255);
+}
+
 
 int loop256(int i){
-  if (i > 255){
-    i = i - 256;
-    return loop256(i);
-  }else if (i < 0){
-    i = i + 256;
-    return loop256(i);
-  }
-  return i;
+    while (i > 255){
+        i-= 256;
+    }
+    while (i < 0){
+        i+= 256;
+    }
+    return i;
 }
 
 
@@ -68,27 +97,61 @@ void test(){
 }
 
 
+void print2digits(int number) {
+  if (number >= 0 && number < 10) {
+    Serial.write('0');
+  }
+  Serial.print(number);
+}
+tmElements_t tm;
+void readRTC(){
+    if (RTC.read(tm)) {
+        Serial.print("Ok, Time = ");
+        print2digits(tm.Hour);
+        Serial.write(':');
+        print2digits(tm.Minute);
+        Serial.write(':');
+        print2digits(tm.Second);
+        Serial.print(", Date (D/M/Y) = ");
+        Serial.print(tm.Day);
+        Serial.write('/');
+        Serial.print(tm.Month);
+        Serial.write('/');
+        Serial.print(tmYearToCalendar(tm.Year));
+        Serial.println();
+      } else {
+          if (RTC.chipPresent()) {
+              Serial.println("The DS1307 is stopped.  Please run the SetTime");
+              Serial.println("example to initialize the time and begin running.");
+              Serial.println();
+          } else {
+              Serial.println("DS1307 read error!  Please check the circuitry.");
+              Serial.println();
+          }
+          delay(9000);
+      }
+      delay(5);
+}
+
+
+
 void setup() {
-  Serial.begin(9600);
-  Serial.println("start serial");
+    Serial.begin(9600);
+    while(!Serial); //wait for serial
+    delay(200);
+    Serial.println("Start Serial");
+    Serial.println("DS2312RTC Read Test");
 
-  strip.begin();
-  strip.show(); // Initialize all pixels to 'off'
 
-  setLed(0, 0, strip.Color(0, 0, 127));
-  setLed(1, 0, strip.Color(255, 0, 127));
-  setLed(2, 0, strip.Color(255, 0, 127));
-  setLed(3, 0, strip.Color(255, 0, 127));
+    strip.begin();
+    strip.show(); // Initialize all pixels to 'off'
+    setTimeColors();
 
-  setLed(1, 1, strip.Color(255, 0, 127));
-  setLed(2, 2, strip.Color(255, 127, 127));
-  setLed(3, 3, strip.Color(255, 0, 127));
-  setLed(1, 4, strip.Color(255, 255, 127));
 
-  updateMatrix();
-  strip.show();
+    updateMatrix();
+    strip.show();
 
-  Serial.println(loop256(513));
+    Serial.println(loop256(513));
 }
 
 void loop() {
@@ -98,23 +161,18 @@ void loop() {
       delay(10);
   }*/
   test();
-
+  readRTC();
 }
 
-/*
- * Led strip order
- *   |_0__1__2__3__|x
- * 4 | 4  5  14 15
- * 3 | 3  6  13 16
- * 2 | 2  7  12 17
- * 1 | 1  8  11 18
- * 0 | 0  9  10 19
- * y
- */
-const uint8_t width = 4;
-const uint8_t height = 5;
-uint32_t ledMatrixState[width][height];
 
+
+void init_matrix(){
+    for (uint8_t x = 0; x < width; x++){
+        for (uint8_t y = 0; y < height; y++){
+            ledMatrixState[x][y] = 0;
+        }
+    }
+}
 void updateMatrix(){
   uint8_t i = 0;
   for (uint8_t x = 0; x < width; x++){
@@ -134,7 +192,6 @@ void updateMatrix(){
   }
   strip.show();
 }
-
 void setLed(uint8_t x, uint8_t y, uint32_t c){
   ledMatrixState[x][y] = c;
 }
