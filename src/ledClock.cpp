@@ -177,6 +177,7 @@ void displayTime(){
         for (int i = 1; i < 4; i++){
             timeDigitArray[i] = strTime[i]-48 + timeDigitArray[i-1]+1;
         }
+        setAll(strip.Color(0, 0, 0));
         int count = 0;
         for (int i = 0; i < 4; i++){
             while(count < timeDigitArray[i]){
