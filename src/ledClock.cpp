@@ -25,7 +25,7 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(20, PIN, NEO_GRB + NEO_KHZ800);
 // and minimize distance between Arduinois  and first pixel.  Avoid connecting
 // on a live circuit...if you must, connect GND first.
 
-uint32_t hours_digit0_color, hours_digit1_color;
+uint32_t hours_digit0_color = strip.Color(255, 0, 0), hours_digit1_color;
 uint32_t minutes_digit0_color, minutes_digit1_color;
 uint32_t seconds_color;
 void setTimeColors();
@@ -51,15 +51,7 @@ void setAll(uint32_t);
 uint32_t Wheel(byte WheelPos);
 
 
-void setTimeColors(){
-    hours_digit0_color = strip.Color(255, 0, 0);
-    hours_digit1_color = strip.Color(0, 255, 0);
 
-    minutes_digit0_color = strip.Color(0, 0, 255);
-    minutes_digit1_color = strip.Color(255, 0, 0);
-
-    seconds_color = strip.Color(255, 255, 255);
-}
 
 
 int loop256(int i){
@@ -103,8 +95,10 @@ void print2digits(int number) {
   }
   Serial.print(number);
 }
-tmElements_t tm;
+
+
 void readRTC(){
+    tmElements_t tm;
     if (RTC.read(tm)) {
         Serial.print("Ok, Time = ");
         print2digits(tm.Hour);
@@ -134,6 +128,78 @@ void readRTC(){
 }
 
 
+String intToString(int num){
+    String str = "";
+    if (num >= 0 && num < 10){
+        str += '0';
+    }
+    str += num;
+    //Serial.print(str);
+    return str;
+}
+
+int numofled = 20;
+
+int currentled = 0;
+void insertLED(int num, uint32_t c){
+    for (int i = currentled; i < currentled+num; i++){
+        strip.setPixelColor(i, c);
+    }
+    currentled += num;
+}
+
+
+int insertNum(int prev, int num){
+    return prev+num;
+}
+
+uint32_t timeColorArray[4] = {0, 0, 0, 0};
+
+void setTimeColors(){
+    hours_digit0_color = strip.Color(255, 0, 0);
+    hours_digit1_color = strip.Color(0, 255, 0);
+
+    minutes_digit0_color = strip.Color(0, 0, 255);
+    minutes_digit1_color = strip.Color(255, 255, 0);
+
+    seconds_color = strip.Color(255, 255, 255);
+
+    timeColorArray[0] = hours_digit0_color;
+    timeColorArray[1] = hours_digit1_color;
+    timeColorArray[2] = minutes_digit0_color;
+    timeColorArray[3] = minutes_digit1_color;
+}
+void displayTime(){
+    tmElements_t tm;
+    if (RTC.read(tm)){
+        String strTime = intToString(tm.Hour) + intToString(tm.Minute);
+        int timeDigitArray[] = {strTime[0]-48, 0, 0, 0};
+        for (int i = 1; i < 4; i++){
+            timeDigitArray[i] = strTime[i]-48 + timeDigitArray[i-1]+1;
+        }
+        int count = 0;
+        for (int i = 0; i < 4; i++){
+            while(count < timeDigitArray[i]){
+                strip.setPixelColor(count, timeColorArray[i]);
+                count++;
+            }
+            strip.setPixelColor(count, strip.Color(0, 0, 0));
+            count++;
+        }
+    }else{
+
+    }
+    strip.show();
+}
+void displayDate(){
+    tmElements_t tm;
+    if (RTC.read(tm)){
+
+    }else{
+
+    }
+}
+
 
 void setup() {
     Serial.begin(9600);
@@ -145,13 +211,11 @@ void setup() {
 
     strip.begin();
     strip.show(); // Initialize all pixels to 'off'
-    setTimeColors();
 
+    setTimeColors();
 
     updateMatrix();
     strip.show();
-
-    Serial.println(loop256(513));
 }
 
 void loop() {
@@ -160,8 +224,12 @@ void loop() {
       strip.show();
       delay(10);
   }*/
-  test();
-  readRTC();
+  //test();
+  //readRTC();
+
+  displayTime();
+          strip.show();
+          delay(1000);
 }
 
 
