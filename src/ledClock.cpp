@@ -169,26 +169,18 @@ void setTimeColors(){
     timeColorArray[2] = minutes_digit0_color;
     timeColorArray[3] = minutes_digit1_color;
 }
-void displayTime(){
-    tmElements_t tm;
-    if (RTC.read(tm)){
-        String strTime = intToString(tm.Hour) + intToString(tm.Minute);
-        int timeDigitArray[] = {strTime[0]-48, 0, 0, 0};
-        for (int i = 1; i < 4; i++){
-            timeDigitArray[i] = strTime[i]-48 + timeDigitArray[i-1]+1;
-        }
-        setAll(strip.Color(0, 0, 0));
-        int count = 0;
-        for (int i = 0; i < 4; i++){
-            while(count < timeDigitArray[i]){
-                strip.setPixelColor(count, timeColorArray[i]);
-                count++;
-            }
-            strip.setPixelColor(count, strip.Color(0, 0, 0));
+void displayTime(String strTime){
+    int timeDigitArray[] = {strTime[0]-48, 0, 0, 0};
+    for (int i = 1; i < 4; i++){
+        timeDigitArray[i] = strTime[i]-48 + timeDigitArray[i-1];
+    }
+    setAll(strip.Color(0, 0, 0));
+    int count = 0;
+    for (int i = 0; i < 4; i++){
+        while(count < timeDigitArray[i]){
+            strip.setPixelColor(count, timeColorArray[i]);
             count++;
         }
-    }else{
-
     }
     strip.show();
 }
@@ -201,6 +193,21 @@ void displayDate(){
     }
 }
 
+void displayNumber(String num){
+    for (int x = 0; x < 4; x++){
+        int digit = num[3-x] - 48;
+        for (int y = 0; y < 5; y++){
+            if (y < digit-5){
+                setLed(x, 4-y, strip.Color(255, 0, 0));
+            }else if (y < digit){
+                setLed(x, 4-y, strip.Color(0, 255, 0));
+            }else{
+                setLed(x, 4-y, strip.Color(0, 0, 0));
+            }
+        }
+    }
+    updateMatrix();
+}
 
 void setup() {
     Serial.begin(9600);
@@ -215,8 +222,25 @@ void setup() {
 
     setTimeColors();
 
+    displayNumber("8912");
     updateMatrix();
     strip.show();
+}
+
+String fourDigitsToString(int num){
+    String str = "";
+    if (num < 10){
+        str = "000";
+    }else if (num < 100){
+        str = "00";
+    }else if (num < 1000){
+        str = "0";
+    }else {
+        str = "";
+    }
+    str += num;
+    //Serial.println(str);
+    return str;
 }
 
 void loop() {
@@ -228,9 +252,19 @@ void loop() {
   //test();
   //readRTC();
 
-  displayTime();
-          strip.show();
-          delay(1000);
+
+  tmElements_t tm;
+  if (RTC.read(tm)){
+      String strTime = intToString(tm.Hour) + intToString(tm.Minute);
+      displayNumber(strTime);
+  }else{
+
+  }
+
+  strip.show();
+  delay(1000);
+
+
 }
 
 
